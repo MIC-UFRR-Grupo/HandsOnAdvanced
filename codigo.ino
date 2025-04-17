@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_PN532.h>
-//#include <Adafruit_MPU6050.h>
+#include <Adafruit_MPU6050.h>
 #include <Firebase_ESP_Client.h>
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
@@ -27,7 +27,7 @@ FirebaseConfig config;
 
 // Inicialização dos sensores
 Adafruit_PN532 nfc(SDA, SCL);
-//Adafruit_MPU6050 mpu;
+Adafruit_MPU6050 mpu;
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2); // Serial2 para GPS (GPIO 16 e 17)
 WiFiUDP ntpUDP;
@@ -86,13 +86,13 @@ void setup() {
   }
 
   // MPU6050
-  /*if (!mpu.begin()) {
+  if (!mpu.begin()) {
     Serial.println("[FAIL] - Falha ao inicializar MPU6050");
     while (1);
   }
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ); */
+  mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
 
   //GPS
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
@@ -131,7 +131,7 @@ void loop() {
         readSensor(currentTagID);
       } 
 
-      delay(2000);
+      delay(1000);
       //Finaliza
       if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 1000)){
         success = 0;
@@ -165,27 +165,26 @@ void sistemaAtivo(bool systemActive, String currentTagID){
     if (systemActive) {
       startTime = getTime(); // Captura o tempo de início
       currentSessionID = String(millis()); // ID único para a sessão
-      //enviarInicioSessao(currentTagID, startTime);
     } else {
-      unsigned long endTime = getTime(); // Captura o tempo de fim
-      //enviarFimSessao(currentTagID, startTime, endTime, currentSessionID);
+      endTime = getTime(); // Captura o tempo de fim
+      readSensor(currentTagID);
       currentSessionID = ""; // Reseta o ID da sessão
     }
 }
 
 void readSensor(String currentTagID){
   // Leitura do MPU6050
-  /* sensors_event_t a, g, temp;
+  sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
   float accelMagnitude = sqrt(a.acceleration.x * a.acceleration.x +
                               a.acceleration.y * a.acceleration.y +
                               a.acceleration.z * a.acceleration.z) / 9.81; // Normaliza para g
   isMoving = accelMagnitude > ACCEL_THRESHOLD;
   Serial.print("Movimento: ");
-  Serial.println(isMoving ? "Sim" : "Não");*/
+  Serial.println(isMoving ? "Sim" : "Não");
 
     // Leitura do AD8232 (Frequência cardíaca)
-  /*  if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL) {
+    if (millis() - lastHeartbeat >= HEARTBEAT_INTERVAL) {
       int samples = 100;
       int beats = 0;
       unsigned long startTime = millis();
@@ -208,7 +207,7 @@ void readSensor(String currentTagID){
       Serial.print("Frequência cardíaca: ");
       Serial.print(heartRate);
       Serial.println(" BPM");
-    }*/
+    }
 
     // Leitura do GPS
     while (gpsSerial.available() > 0) {
@@ -231,7 +230,7 @@ void enviarDadosParaFirebase(String driver, bool moving) {
   // Dados de sessão
   json.set("sessions/start_time", startTime);
   json.set("sessions/end_time", endTime);
-  json.set("sessions/is_active_session", true);
+  json.set("sessions/is_active_session", endTime ? false : true);
 
   // Dados do GPS
   if (gps.location.isValid()) {
@@ -243,7 +242,7 @@ void enviarDadosParaFirebase(String driver, bool moving) {
   }
 
   // Dados do MPU6050
- /* sensors_event_t a, g, temp;
+  sensors_event_t a, g, temp;
   mpu.getEvent(&a, &g, &temp);
   json.set("mpu_accel_x", a.acceleration.x);
   json.set("mpu_accel_y", a.acceleration.y);
@@ -251,7 +250,7 @@ void enviarDadosParaFirebase(String driver, bool moving) {
   json.set("mpu_gyro_x", g.gyro.x);
   json.set("mpu_gyro_y", g.gyro.y);
   json.set("mpu_gyro_z", g.gyro.z);
-  json.set("mpu_temperature", temp.temperature);*/
+  json.set("mpu_temperature", temp.temperature);
   json.set("is_moving", moving);
 
   // Dados do AD8232 (ajustado para leitura simples)
@@ -267,33 +266,6 @@ void enviarDadosParaFirebase(String driver, bool moving) {
   }
   delay(500);
 }
-/*
-void enviarInicioSessao(String driver, unsigned long startTime) {
-  FirebaseJson json;
-  json.set("startTime", startTime);
-  json.set("active", true);
-
-  String sessionPath = "/drivers/" + driver + "/sessions/" + currentSessionID;
-  if (Firebase.RTDB.setJSON(&fbdo, sessionPath.c_str(), &json)) {
-    Serial.println("[OK] - Início da sessão enviado para: " + sessionPath);
-  } else {
-    Serial.println("[FAIL] - Erro ao enviar início da sessão: " + fbdo.errorReason());
-  }
-}
-
-void enviarFimSessao(String driver, unsigned long startTime, unsigned long endTime, String sessionID) {
-  FirebaseJson json;
-  json.set("start_time", startTime);
-  json.set("end_time", endTime);
-  json.set("is_active_session", false);
-
-  String sessionPath = "/drivers/" + driver + "/sessions/" + sessionID;
-  if (Firebase.RTDB.setJSON(&fbdo, sessionPath.c_str(), &json)) {
-    Serial.println("[OK] - Fim da sessão enviado para: " + sessionPath);
-  } else {
-    Serial.println("[FAIL] - Erro ao enviar fim da sessão: " + fbdo.errorReason());
-  }
-}*/
 
 unsigned long getTime() {
   timeClient.update();
