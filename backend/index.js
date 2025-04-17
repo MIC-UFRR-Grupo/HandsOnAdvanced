@@ -8,16 +8,44 @@ admin.initializeApp({
   databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
 });
 
+const db = admin.firestore();
 const app = express();
 app.use(cors());
-app.use(express.json());
 
-// Rotas (exemplo)
-app.get('/veiculos', async (req, res) => {
-  const snapshot = await admin.firestore().collection('veiculos').get();
-  res.json(snapshot.docs.map(doc => doc.data()));
+// Remova a simulação de atualizações automáticas (ela causa conflito)
+// Mantenha apenas o listener passivo
+
+// Rota corrigida para tempo real
+app.get('/test-realtime', (req, res) => {
+  const docRef = db.collection('test').doc('realtime');
+  let responded = false; // Flag para controlar resposta única
+
+  const unsubscribe = docRef.onSnapshot(
+    (snapshot) => {
+      if (!responded && snapshot.exists) {
+        responded = true;
+        res.json(snapshot.data());
+        unsubscribe(); // Encerra o listener
+      }
+    },
+    (error) => {
+      if (!responded) {
+        responded = true;
+        res.status(500).json({ error: error.message });
+      }
+    }
+  );
+
+  // Timeout para evitar requisições pendentes
+  setTimeout(() => {
+    if (!responded) {
+      responded = true;
+      res.status(408).json({ error: "Tempo esgotado" });
+      unsubscribe();
+    }
+  }, 10000);
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`Backend rodando na porta ${process.env.PORT}`);
+app.listen(process.env.PORT || 3001, () => {
+  console.log(`Servidor rodando na porta ${process.env.PORT || 3001}`);
 });
