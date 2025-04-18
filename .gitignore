@@ -26,3 +26,6 @@ backend/dist
 .env.*.local
 
 backend/serviceAccountKey.json
+
+frontend/package-lock.json
+backend/package-lock.json
