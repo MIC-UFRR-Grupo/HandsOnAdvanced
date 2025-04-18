@@ -10,7 +10,14 @@ admin.initializeApp({
 
 const db = admin.firestore();
 const app = express();
-app.use(cors());
+
+// Configuração do CORS
+app.use(cors({
+  origin: 'http://localhost:3000', // porta padrão do React
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 
 // Remova a simulação de atualizações automáticas (ela causa conflito)
 // Mantenha apenas o listener passivo
