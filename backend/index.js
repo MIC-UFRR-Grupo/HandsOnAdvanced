@@ -4,19 +4,12 @@ const path = require('path');
 const admin = require('firebase-admin');
 require('dotenv').config();
 
-// Inicialização do Firebase Admin
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(require('./serviceAccountKey.json')),
-    databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
-  });
-  console.log('Firebase Admin inicializado com sucesso');
-} catch (error) {
-  console.error('Erro ao inicializar Firebase Admin:', error);
-  process.exit(1);
-}
+admin.initializeApp({
+  credential: admin.credential.cert(require('./serviceAccountKey.json')),
+  databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`
+});
+const db = admin.database();
 
-const db = admin.firestore();
 const app = express();
 
 // Configuração do CORS
@@ -45,30 +38,25 @@ app.use('/relatorios', relatoriosRouter);
 
 // Rota de teste
 app.get('/test-realtime', (req, res) => {
-  const docRef = db.collection('test').doc('realtime');
+  const ref = db.ref('/drivers');
   let responded = false;
 
-  const unsubscribe = docRef.onSnapshot(
-    (snapshot) => {
-      if (!responded && snapshot.exists) {
-        responded = true;
-        res.json(snapshot.data());
-        unsubscribe();
-      }
-    },
-    (error) => {
-      if (!responded) {
-        responded = true;
-        res.status(500).json({ error: error.message });
-      }
+  ref.on('value', snapshot => {
+    if (!responded && snapshot.exists) {
+      responded = true;
+      res.json(snapshot.val());
     }
-  );
+  }, error => {
+    if (!responded) {
+      responded = true;
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   setTimeout(() => {
     if (!responded) {
       responded = true;
       res.status(408).json({ error: "Tempo esgotado" });
-      unsubscribe();
     }
   }, 10000);
 });
