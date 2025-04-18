@@ -1,9 +1,46 @@
 import React from 'react';
-import { Grid, Paper, Typography, Box } from '@mui/material';
-import { DirectionsCar, People, Assessment } from '@mui/icons-material';
+import { Box, Typography } from '@mui/material';
+import L from 'leaflet';
+import { useEffect, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
 
 const Dashboard = () => {
-  const cards = [
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+
+  useEffect(() => {
+    if (!mapInstance.current && mapRef.current) {
+      // Inicializar o mapa apenas se não existir uma instância
+      mapInstance.current = L.map(mapRef.current).setView([2.8256994,-60.6779949], 16);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        subdomains: ['a', 'b', 'c'],
+      }).addTo(mapInstance.current);
+    }
+
+    // Função de limpeza para destruir o mapa quando o componente desmontar
+    return () => {
+      if (mapInstance.current) {
+        mapInstance.current.remove();
+        mapInstance.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <Box>
+      <Typography variant="h4" gutterBottom>
+        Dashboard
+      </Typography>
+      <div ref={mapRef} style={{ height: '600px', width: '100%' }} />
+    </Box>
+  );
+};
+
+export default Dashboard;
+
+  /*const cards = [
     {
       title: 'Total de Veículos',
       value: '25',
@@ -22,40 +59,4 @@ const Dashboard = () => {
       icon: <Assessment sx={{ fontSize: 40 }} />,
       color: '#ed6c02',
     },
-  ];
-
-  return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
-        Dashboard
-      </Typography>
-      <Grid container spacing={3}>
-        {cards.map((card) => (
-          <Grid item xs={12} sm={6} md={4} key={card.title}>
-            <Paper
-              sx={{
-                p: 2,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                height: 140,
-                backgroundColor: card.color,
-                color: 'white',
-              }}
-            >
-              {card.icon}
-              <Typography variant="h6" component="div" sx={{ mt: 2 }}>
-                {card.title}
-              </Typography>
-              <Typography variant="h4" component="div">
-                {card.value}
-              </Typography>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-    </Box>
-  );
-};
-
-export default Dashboard; 
+  ];*/
