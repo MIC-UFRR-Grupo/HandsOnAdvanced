@@ -1,1 +1,28 @@
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea
+.vscode
+*.swp
+*.swo
+
+# Logs
+*.log
+logs
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Ignorar pastas de build
+frontend/build
+backend/dist
+
+# Arquivos de ambiente
+.env
+.env.local
+.env.*.local
+
 backend/serviceAccountKey.json
