@@ -1,66 +1,60 @@
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
-const db = admin.firestore();
+const db = admin.database();
 
 // Listar todos os motoristas
-router.get('/', async (req, res) => {
-  try {
-    const snapshot = await db.collection('motoristas').get();
+router.get('/', (req, res) => {
+  db.ref('motoristas').once('value', snapshot => {
     const motoristas = [];
-    snapshot.forEach(doc => {
-      motoristas.push({ id: doc.id, ...doc.data() });
+    snapshot.forEach(child => {
+      motoristas.push(child.val());
     });
     res.json(motoristas);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+  });
 });
 
 // Criar um novo motorista
-router.post('/', async (req, res) => {
-  try {
-    const { nome, cnh, telefone, status } = req.body;
-    const docRef = await db.collection('motoristas').add({
-      nome,
-      cnh,
-      telefone,
-      status,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    res.json({ id: docRef.id, nome, cnh, telefone, status });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+router.post('/', (req, res) => {
+  db.ref('motoristas').push({
+    nome: req.body.nome,
+    cnh: req.body.cnh,
+    telefone: req.body.telefone,
+    status: req.body.status
+  }, error => {
+    if (error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.json({ message: 'Motorista criado com sucesso' });
+    }
+  });
 });
 
 // Atualizar um motorista
-router.put('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { nome, cnh, telefone, status } = req.body;
-    await db.collection('motoristas').doc(id).update({
-      nome,
-      cnh,
-      telefone,
-      status,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
-    res.json({ id, nome, cnh, telefone, status });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+router.put('/:id', (req, res) => {
+  db.ref(`motoristas/${req.params.id}`).update({
+    nome: req.body.nome,
+    cnh: req.body.cnh,
+    telefone: req.body.telefone,
+    status: req.body.status
+  }, error => {
+    if (error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.json({ message: 'Motorista atualizado com sucesso' });
+    }
+  });
 });
 
 // Excluir um motorista
-router.delete('/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    await db.collection('motoristas').doc(id).delete();
-    res.json({ message: 'Motorista excluído com sucesso' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+router.delete('/:id', (req, res) => {
+  db.ref(`motoristas/${req.params.id}`).remove(error => {
+    if (error) {
+      res.status(500).json({ error: error.message });
+    } else {
+      res.json({ message: 'Motorista excluído com sucesso' });
+    }
+  });
 });
 
-module.exports = router; 
+module.exports = router;

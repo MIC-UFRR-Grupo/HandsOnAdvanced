@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const admin = require('firebase-admin');
-const db = admin.firestore();
+const db = admin.database();
 
 // Listar tipos de relatório disponíveis
 router.get('/tipos', (req, res) => {
@@ -21,52 +21,34 @@ router.post('/', async (req, res) => {
 
     switch (tipo) {
       case 'veiculos':
-        const snapshotVeiculos = await db.collection('veiculos').get();
-        snapshotVeiculos.forEach(doc => {
-          resultado.push({ id: doc.id, ...doc.data() });
+        db.ref('veiculos').once('value', snapshot => {
+          snapshot.forEach(child => {
+            resultado.push(child.val());
+          });
+          res.json(resultado);
         });
         break;
 
       case 'motoristas':
-        const snapshotMotoristas = await db.collection('motoristas').get();
-        snapshotMotoristas.forEach(doc => {
-          resultado.push({ id: doc.id, ...doc.data() });
+        db.ref('motoristas').once('value', snapshot => {
+          snapshot.forEach(child => {
+            resultado.push(child.val());
+          });
+          res.json(resultado);
         });
         break;
 
       case 'viagens':
-        const snapshotViagens = await db.collection('viagens')
-          .where('data', '>=', new Date(dataInicio))
-          .where('data', '<=', new Date(dataFim))
-          .get();
-        snapshotViagens.forEach(doc => {
-          resultado.push({ id: doc.id, ...doc.data() });
-        });
+        // Implementar lógica para gerar relatório de viagens
+        res.json(resultado);
         break;
 
       default:
-        return res.status(400).json({ error: 'Tipo de relatório inválido' });
+        res.status(400).json({ error: 'Tipo de relatório inválido' });
     }
-
-    // Aplicar filtro adicional se fornecido
-    if (filtro) {
-      resultado = resultado.filter(item => {
-        return Object.values(item).some(value => 
-          String(value).toLowerCase().includes(filtro.toLowerCase())
-        );
-      });
-    }
-
-    res.json({
-      tipo,
-      dataInicio,
-      dataFim,
-      totalRegistros: resultado.length,
-      dados: resultado
-    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-module.exports = router; 
+module.exports = router;
