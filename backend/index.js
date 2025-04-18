@@ -27,11 +27,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Importar e usar rotas
+const dashboardRouter = require('./routes/dashboard');
 const veiculosRouter = require('./routes/veiculos');
 const motoristasRouter = require('./routes/motoristas');
 const relatoriosRouter = require('./routes/relatorios');
 
 // Rotas
+app.use('/dashboard', dashboardRouter);
 app.use('/veiculos', veiculosRouter);
 app.use('/motoristas', motoristasRouter);
 app.use('/relatorios', relatoriosRouter);
