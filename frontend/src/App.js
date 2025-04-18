@@ -1,34 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import './App.css';
-import api from './services/api';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import DashboardLayout from './components/layout/DashboardLayout';
+import Dashboard from './pages/Dashboard';
+import Veiculos from './pages/Veiculos';
+import Motoristas from './pages/Motoristas';
+import Relatorios from './pages/Relatorios';
 
 function App() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await api.get('/test-realtime');
-        setData(response.data);
-      } catch (error) {
-        console.error('Erro ao buscar dados:', error);
-      }
-    };
-
-    fetchData();
-  }, []);
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>Dados do Backend</h1>
-        {data ? (
-          <pre>{JSON.stringify(data, null, 2)}</pre>
-        ) : (
-          <p>Carregando dados...</p>
-        )}
-      </header>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="veiculos" element={<Veiculos />} />
+          <Route path="motoristas" element={<Motoristas />} />
+          <Route path="relatorios" element={<Relatorios />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 
