@@ -1,13 +1,10 @@
 #include <Wire.h>
 #include <WiFi.h>
 #include <Adafruit_Sensor.h>
-#include <Adafruit_PN532.h>
 #include <Adafruit_MPU6050.h>
 #include <Firebase_ESP_Client.h>
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
-#include <NTPClient.h>
-#include <WiFiUdp.h>
 #include "ambiente.ino"  // #define WIFI_SSID WIFI_PASSWORD
 
 // Objeto Firebase
@@ -26,22 +23,14 @@ FirebaseConfig config;
 #define BUZZER 18
 
 // Inicialização dos sensores
-Adafruit_PN532 nfc(SDA, SCL);
 Adafruit_MPU6050 mpu;
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(2); // Serial2 para GPS (GPIO 16 e 17)
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org");
 
 // Variáveis de controle
-bool systemActive = false;
-bool lastCardState = false;
 unsigned long lastHeartbeat = 0;
 float heartRate = 0;
 bool isMoving = false;
-unsigned long startTime = 0; // Timestamp de início da sessão
-unsigned long endTime = 0;
-String currentSessionID = ""; // ID da sessão atual
 
 // Configurações
 const float ACCEL_THRESHOLD = 1.5; // Limiar de aceleração para detectar movimento (m/s²)
@@ -52,18 +41,9 @@ void setup() {
   pinMode(LED_GREEN, OUTPUT);
   pinMode(LED_RED, OUTPUT);
   pinMode(BUZZER, OUTPUT);
-  digitalWrite(LED_RED, HIGH); 
+  digitalWrite(LED_GREEN, HIGH); 
 
   Wire.begin(SDA, SCL); // Inicializa a biblioteca Wire para I2C
-
-  // PN532
-  nfc.begin();
-  uint32_t versiondata = nfc.getFirmwareVersion();
-  if (!versiondata) {
-    Serial.print("[FAIL] - Não foi possível encontrar o PN532!");
-    while (1); // Trava aqui se o PN532 não for encontrado
-  }
-  nfc.SAMConfig();
 
   // WIFI
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -80,6 +60,7 @@ void setup() {
   Firebase.reconnectWiFi(true);
   if (!Firebase.ready()) {
     Serial.println("[FAIL] - Falha ao conectar ao Firebase!");
+    tocaBuzzer();
     while (1);
   } else{
     Serial.println("[OK] - FIREBASE conectado!");
@@ -88,6 +69,7 @@ void setup() {
   // MPU6050
   if (!mpu.begin()) {
     Serial.println("[FAIL] - Falha ao inicializar MPU6050");
+    tocaBuzzer();
     while (1);
   }
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
@@ -97,56 +79,11 @@ void setup() {
   //GPS
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
 
-  // Time
-  timeClient.begin();
-
-  Serial.println("\nAguardando cartão NFC/RFID...");
 }
 
 void loop() {
-  bool success;
-  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  
-  uint8_t uidLength;                       
-
-  // Espera até que uma tag seja detectada
-  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 1000);
-  /// Inicia
-  if (success) {
-    Serial.println("Tag encontrada!");
-    String currentTagID = "";
-    tocaBuzzer();
-    Serial.print("  UID Value: ");
-    for (uint8_t i = 0; i < uidLength; i++) {
-      Serial.print(" 0x");Serial.print(uid[i], HEX);
-      currentTagID += String(uid[i] < 0x10 ? "0" : "") + String(uid[i], HEX); 
-    }
-
-    systemActive = !systemActive; 
-    lastCardState = true;
-    sistemaAtivo(systemActive, currentTagID);
-
-    while(success){
-
-      if (systemActive) {
-        readSensor(currentTagID);
-      } 
-
-      delay(1000);
-      //Finaliza
-      if (nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength, 1000)){
-        success = 0;
-        tocaBuzzer();
-        systemActive = !systemActive; // Alterna o estado
-        sistemaAtivo(systemActive, currentTagID);
-        Serial.println("\nAguardando cartão NFC/RFID...");
-      }
-    }
-
-    delay(1000); // pausa antes de procurar outra tag
-  } else if (lastCardState) {
-    lastCardState = false; // Reseta o estado do cartão
-  }
-  delay(500);
+  readSensor("test_tag");
+  delay(2000); 
 }
 
 void tocaBuzzer(){
@@ -155,22 +92,6 @@ void tocaBuzzer(){
     digitalWrite(BUZZER, LOW);
 }
 
-void sistemaAtivo(bool systemActive, String currentTagID){
-    Serial.println("");
-    Serial.println(systemActive ? "Sistema ativado" : "Sistema desativado");
-    digitalWrite(LED_GREEN, systemActive ? HIGH : LOW);
-    digitalWrite(LED_RED, systemActive ? LOW : HIGH);
-
-    // Gerenciar sessão
-    if (systemActive) {
-      startTime = getTime(); // Captura o tempo de início
-      currentSessionID = String(millis()); // ID único para a sessão
-    } else {
-      endTime = getTime(); // Captura o tempo de fim
-      readSensor(currentTagID);
-      currentSessionID = ""; // Reseta o ID da sessão
-    }
-}
 
 void readSensor(String currentTagID){
   // Leitura do MPU6050
@@ -227,11 +148,6 @@ void readSensor(String currentTagID){
 void enviarDadosParaFirebase(String driver, bool moving) {
   FirebaseJson json;
 
-  // Dados de sessão
-  json.set("sessions/start_time", startTime);
-  json.set("sessions/end_time", endTime);
-  json.set("sessions/is_active_session", endTime ? false : true);
-
   // Dados do GPS
   if (gps.location.isValid()) {
     json.set("latitude", gps.location.lat());
@@ -264,10 +180,5 @@ void enviarDadosParaFirebase(String driver, bool moving) {
   } else {
     Serial.println(fbdo.errorReason());
   }
-  delay(500);
-}
-
-unsigned long getTime() {
-  timeClient.update();
-  return timeClient.getEpochTime() * 1000; // Em milissegundos
+  delay(1000);
 }
