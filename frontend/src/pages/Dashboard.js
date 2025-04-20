@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Box, Typography, Grid, Paper, Stack, CircularProgress } from '@mui/material';
 import { DirectionsCar, People, Assessment } from '@mui/icons-material';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import '../leaflet/dist/leaflet.css';
 import dashboardService from '../services/dashboardService';
 
 // Estilo CSS para o ícone personalizado
@@ -243,4 +243,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

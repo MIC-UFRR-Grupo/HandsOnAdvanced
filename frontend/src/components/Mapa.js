@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import '../leaflet/dist/leaflet.css';
 import { mapaService } from '../services/mapaService';
 import carIcon from '../assets/car-icon.png';
 

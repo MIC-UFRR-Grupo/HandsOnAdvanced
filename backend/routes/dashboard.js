@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
 
     // Processar dados para o dashboard
     const veiculosProcessados = veiculos.map(veiculo => {
-      const motorista = motoristas[veiculo.driver_id];
+      const motorista = motoristas[veiculo.motorista_id];
       const rfidData = veiculo.rfid_tag ? rfidInfo[veiculo.rfid_tag] : null;
 
       return {
