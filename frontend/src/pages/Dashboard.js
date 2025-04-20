@@ -68,8 +68,8 @@ const Dashboard = () => {
       color: '#2e7d32',
     },
     {
-      title: 'Relatórios Gerados',
-      value: dashboardData?.totalRelatorios || '0',
+      title: 'Veículos em Serviço',
+      value: dashboardData?.totalEmMovimento || '0',
       icon: <Assessment sx={{ fontSize: 40, color: 'white' }} />,
       color: '#ed6c02',
     },
@@ -79,20 +79,14 @@ const Dashboard = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [dashData, locData] = await Promise.all([
-          dashboardService.getDashboardData(),
-          dashboardService.getDriverLocation()
-        ]);
-
+        const dashData = await dashboardService.getDashboardData();
+        
         // Atualizar dados do dashboard apenas se houver mudança
         if (JSON.stringify(dashData) !== JSON.stringify(dashboardData)) {
           setDashboardData(dashData);
-        }
-
-        // Atualizar localização apenas se houver mudança
-        if (JSON.stringify(locData) !== JSON.stringify(lastLocationRef.current)) {
-          setDriverLocation(locData);
-          lastLocationRef.current = locData;
+          if (dashData.veiculosAtivos.length > 0) {
+            setDriverLocation(dashData.veiculosAtivos[0].rfidData); // Usar primeiro veículo como exemplo
+          }
         }
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
@@ -118,46 +112,52 @@ const Dashboard = () => {
       }).addTo(mapInstance.current);
     }
 
-    if (mapInstance.current && driverLocation) {
-      const { latitude, longitude, is_moving } = driverLocation;
-
-      // Criar HTML personalizado para o ícone
-      const markerHtml = `
-        <div class="driver-marker ${is_moving ? 'moving' : 'stopped'} driver-marker-pulse" 
-             style="width: 20px; height: 20px;">
-        </div>
-      `;
-
+    if (mapInstance.current && dashboardData?.veiculosAtivos) {
+      // Limpar marcadores existentes
       if (markerRef.current) {
-        markerRef.current.setLatLng([latitude, longitude]);
-        // Atualizar classe do ícone baseado no status de movimento
-        const markerElement = markerRef.current.getElement();
-        if (markerElement) {
-          markerElement.querySelector('.driver-marker')?.classList.toggle('moving', is_moving);
-          markerElement.querySelector('.driver-marker')?.classList.toggle('stopped', !is_moving);
-        }
-      } else {
-        markerRef.current = L.marker([latitude, longitude], {
-          icon: L.divIcon({
-            className: 'custom-icon',
-            html: markerHtml,
-            iconSize: [20, 20]
-          })
-        }).addTo(mapInstance.current)
-          .bindPopup(`
-            <div style="padding: 10px;">
-              <h3 style="margin: 0 0 10px 0;">Dados do Motorista</h3>
-              <p style="margin: 5px 0;"><strong>Frequência Cardíaca:</strong> ${driverLocation.heart_rate} bpm</p>
-              <p style="margin: 5px 0;"><strong>Temperatura:</strong> ${driverLocation.mpu_temperature}°C</p>
-              <p style="margin: 5px 0;"><strong>Status:</strong> ${driverLocation.is_moving ? 'Em movimento' : 'Parado'}</p>
-            </div>
-          `, {
-            maxWidth: 300,
-            className: 'custom-popup'
-          });
+        markerRef.current.forEach(marker => marker.remove());
       }
+      markerRef.current = [];
 
-      mapInstance.current.setView([latitude, longitude], 13);
+      // Adicionar marcadores para cada veículo
+      dashboardData.veiculosAtivos.forEach(veiculo => {
+        if (veiculo.rfidData && veiculo.rfidData.latitude && veiculo.rfidData.longitude) {
+          const markerHtml = `
+            <div class="driver-marker ${veiculo.rfidData.is_moving ? 'moving' : 'stopped'} driver-marker-pulse" 
+                 style="width: 20px; height: 20px;">
+            </div>
+          `;
+
+          const marker = L.marker([veiculo.rfidData.latitude, veiculo.rfidData.longitude], {
+            icon: L.divIcon({
+              className: 'custom-icon',
+              html: markerHtml,
+              iconSize: [20, 20]
+            })
+          }).addTo(mapInstance.current)
+            .bindPopup(`
+              <div style="padding: 10px;">
+                <h3 style="margin: 0 0 10px 0;">Dados do Veículo</h3>
+                <p style="margin: 5px 0;"><strong>Placa:</strong> ${veiculo.placa}</p>
+                <p style="margin: 5px 0;"><strong>Motorista:</strong> ${veiculo.motoristaNome}</p>
+                <p style="margin: 5px 0;"><strong>Frequência Cardíaca:</strong> ${veiculo.rfidData.heart_rate} bpm</p>
+                <p style="margin: 5px 0;"><strong>Temperatura:</strong> ${veiculo.rfidData.mpu_temperature}°C</p>
+                <p style="margin: 5px 0;"><strong>Status:</strong> ${veiculo.rfidData.is_moving ? 'Em movimento' : 'Parado'}</p>
+              </div>
+            `, {
+              maxWidth: 300,
+              className: 'custom-popup'
+            });
+
+          markerRef.current.push(marker);
+        }
+      });
+
+      // Centralizar o mapa no primeiro veículo
+      const primeiroVeiculo = dashboardData.veiculosAtivos.find(v => v.rfidData?.latitude && v.rfidData?.longitude);
+      if (primeiroVeiculo) {
+        mapInstance.current.setView([primeiroVeiculo.rfidData.latitude, primeiroVeiculo.rfidData.longitude], 13);
+      }
     }
 
     return () => {
@@ -167,7 +167,7 @@ const Dashboard = () => {
         markerRef.current = null;
       }
     };
-  }, [driverLocation]);
+  }, [dashboardData]);
 
   if (loading && !dashboardData) {
     return (
@@ -244,23 +244,3 @@ const Dashboard = () => {
 
 export default Dashboard;
 
-/*const cards = [
-    {
-      title: 'Total de Veículos',
-      value: '25',
-      icon: <DirectionsCar sx={{ fontSize: 40 }} />,
-      color: '#1976d2',
-    },
-    {
-      title: 'Total de Motoristas',
-      value: '15',
-      icon: <People sx={{ fontSize: 40 }} />,
-      color: '#2e7d32',
-    },
-    {
-      title: 'Relatórios Gerados',
-      value: '8',
-      icon: <Assessment sx={{ fontSize: 40 }} />,
-      color: '#ed6c02',
-    },
-  ];*/

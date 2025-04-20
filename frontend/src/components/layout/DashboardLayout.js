@@ -21,7 +21,7 @@ const DashboardLayout = () => {
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
         <Toolbar>
           <Typography variant="h6" noWrap component="div">
-            Sistema de Gestão de Transporte
+            Sistema de Gestão de Transporte Hospitalar
           </Typography>
         </Toolbar>
       </AppBar>

@@ -3,28 +3,62 @@ const router = express.Router();
 const admin = require('firebase-admin');
 const db = admin.database();
 
-// Buscar dados do dashboard
+// Rota para obter dados do dashboard
 router.get('/', async (req, res) => {
   try {
-    const veiculosRef = db.ref('vehicles');
-    const motoristasRef = db.ref('drivers');
-    const relatoriosRef = db.ref('reports');
+    // Buscar dados dos veículos
+    const veiculosSnapshot = await db.ref('vehicles').once('value');
+    const veiculos = [];
+    if (veiculosSnapshot.exists()) {
+      veiculosSnapshot.forEach(childSnapshot => {
+        veiculos.push({
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        });
+      });
+    }
 
-    const [veiculosSnapshot, motoristasSnapshot, relatoriosSnapshot] = await Promise.all([
-      veiculosRef.once('value'),
-      motoristasRef.once('value'),
-      relatoriosRef.once('value')
-    ]);
+    // Buscar dados dos motoristas
+    const motoristasSnapshot = await db.ref('drivers').once('value');
+    const motoristas = {};
+    if (motoristasSnapshot.exists()) {
+      motoristasSnapshot.forEach(childSnapshot => {
+        motoristas[childSnapshot.key] = {
+          id: childSnapshot.key,
+          ...childSnapshot.val()
+        };
+      });
+    }
 
-    const totalVeiculos = veiculosSnapshot.exists() ? Object.keys(veiculosSnapshot.val()).length : 0;
-    const totalMotoristas = motoristasSnapshot.exists() ? Object.keys(motoristasSnapshot.val()).length : 0;
-    const totalRelatorios = relatoriosSnapshot.exists() ? Object.keys(relatoriosSnapshot.val()).length : 0;
+    // Buscar dados do RFID
+    const rfidSnapshot = await db.ref('rfid_tag_info').once('value');
+    const rfidInfo = {};
+    if (rfidSnapshot.exists()) {
+      rfidSnapshot.forEach(childSnapshot => {
+        rfidInfo[childSnapshot.key] = childSnapshot.val();
+      });
+    }
 
-    res.json({
-      totalVeiculos,
-      totalMotoristas,
-      totalRelatorios
+    // Processar dados para o dashboard
+    const veiculosProcessados = veiculos.map(veiculo => {
+      const motorista = motoristas[veiculo.driver_id];
+      const rfidData = veiculo.rfid_tag ? rfidInfo[veiculo.rfid_tag] : null;
+
+      return {
+        ...veiculo,
+        motoristaNome: motorista ? motorista.nome : 'Não atribuído',
+        rfidData: rfidData || null
+      };
     });
+
+    // Retornar dados processados
+    res.json({
+      totalVeiculos: veiculos.length,
+      totalMotoristas: Object.keys(motoristas).length,
+      totalEmMovimento: veiculosProcessados.filter(v => v.rfidData?.is_moving).length,
+      veiculosAtivos: veiculosProcessados
+    });
+
   } catch (error) {
     console.error('Erro ao buscar dados do dashboard:', error);
     res.status(500).json({ error: error.message });

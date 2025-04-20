@@ -18,18 +18,26 @@ import {
   IconButton,
   Snackbar,
   Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import veiculoService from '../services/veiculoService';
+import motoristaService from '../services/motoristaService';
 
 const Veiculos = () => {
   const [veiculos, setVeiculos] = useState([]);
+  const [motoristas, setMotoristas] = useState([]);
   const [open, setOpen] = useState(false);
   const [formData, setFormData] = useState({
     placa: '',
     modelo: '',
     ano: '',
     status: 'Ativo',
+    motorista_id: '',
+    rfid_tag: '',
   });
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -39,6 +47,7 @@ const Veiculos = () => {
 
   useEffect(() => {
     carregarVeiculos();
+    carregarMotoristas();
   }, []);
 
   const carregarVeiculos = async () => {
@@ -54,17 +63,46 @@ const Veiculos = () => {
     }
   };
 
+  const carregarMotoristas = async () => {
+    try {
+      const dados = await motoristaService.listar();
+      setMotoristas(dados);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Erro ao carregar motoristas',
+        severity: 'error',
+      });
+    }
+  };
+
   const handleOpen = () => {
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    setFormData({ placa: '', modelo: '', ano: '', status: 'Ativo' });
+    setFormData({ 
+      placa: '', 
+      modelo: '', 
+      ano: '', 
+      status: 'Ativo',
+      motorista_id: '',
+      rfid_tag: '',
+    });
   };
 
   const handleSubmit = async () => {
     try {
+      if (!formData.motorista_id) {
+        setSnackbar({
+          open: true,
+          message: 'Por favor, selecione um motorista',
+          severity: 'error',
+        });
+        return;
+      }
+
       if (formData.id) {
         await veiculoService.atualizar(formData.id, formData);
         setSnackbar({
@@ -139,6 +177,8 @@ const Veiculos = () => {
               <TableCell>Modelo</TableCell>
               <TableCell>Ano</TableCell>
               <TableCell>Status</TableCell>
+              <TableCell>Motorista</TableCell>
+              <TableCell>Tag RFID</TableCell>
               <TableCell>Ações</TableCell>
             </TableRow>
           </TableHead>
@@ -149,6 +189,10 @@ const Veiculos = () => {
                 <TableCell>{veiculo.modelo}</TableCell>
                 <TableCell>{veiculo.ano}</TableCell>
                 <TableCell>{veiculo.status}</TableCell>
+                <TableCell>
+                  {motoristas.find(m => m.id === veiculo.motorista_id)?.nome || '-'}
+                </TableCell>
+                <TableCell>{veiculo.rfid_tag}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => handleEdit(veiculo)}>
                     <EditIcon />
@@ -191,12 +235,38 @@ const Veiculos = () => {
             value={formData.ano}
             onChange={(e) => setFormData({ ...formData, ano: e.target.value })}
           />
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={formData.status}
+              label="Status"
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            >
+              <MenuItem value="Ativo">Ativo</MenuItem>
+              <MenuItem value="Inativo">Inativo</MenuItem>
+              <MenuItem value="Manutenção">Manutenção</MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl fullWidth margin="dense">
+            <InputLabel>Motorista</InputLabel>
+            <Select
+              value={formData.motorista_id}
+              label="Motorista"
+              onChange={(e) => setFormData({ ...formData, motorista_id: e.target.value })}
+            >
+              {motoristas.map((motorista) => (
+                <MenuItem key={motorista.id} value={motorista.id}>
+                  {motorista.nome}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
           <TextField
             margin="dense"
-            label="Status"
+            label="Tag RFID"
             fullWidth
-            value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+            value={formData.rfid_tag}
+            onChange={(e) => setFormData({ ...formData, rfid_tag: e.target.value })}
           />
         </DialogContent>
         <DialogActions>
