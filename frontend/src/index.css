@@ -11,3 +11,15 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+:root {
+  --primary-color: #34C759; /* Cor verde */
+}
+
+.MuiAppBar-colorPrimary {
+  background-color: #34C759; /* Cor verde */
+}
+
+button {
+  background-color: #34C759; /* Cor verde */
+}

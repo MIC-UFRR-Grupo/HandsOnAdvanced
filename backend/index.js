@@ -38,6 +38,9 @@ app.use('/veiculos', veiculosRouter);
 app.use('/motoristas', motoristasRouter);
 app.use('/relatorios', relatoriosRouter);
 
+// Rota inexistente
+
+
 // Rota de teste
 app.get('/test-realtime', (req, res) => {
   const ref = db.ref('/drivers');

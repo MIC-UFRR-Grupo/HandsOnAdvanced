@@ -23,7 +23,7 @@ import {
   FormControl,
   InputLabel,
 } from '@mui/material';
-import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon, Handyman as HandymanIcon } from '@mui/icons-material';
 import veiculoService from '../services/veiculoService';
 import motoristaService from '../services/motoristaService';
 
@@ -134,6 +134,24 @@ const Veiculos = () => {
     setOpen(true);
   };
 
+  const handleMaintenance = async (id) => {
+    try {
+      //await veiculoService.manutencao(id);
+      setSnackbar({
+        open: true,
+        message: 'em implementação',
+        severity: 'success',
+      });
+      //carregarVeiculos();
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'em implementação',
+        severity: 'error',
+      });
+    }
+  };
+
   const handleDelete = async (id) => {
     try {
       await veiculoService.excluir(id);
@@ -199,6 +217,9 @@ const Veiculos = () => {
                   </IconButton>
                   <IconButton onClick={() => handleDelete(veiculo.id)}>
                     <DeleteIcon />
+                  </IconButton>
+                  <IconButton onClick={() => handleMaintenance(veiculo.id)}>
+                    <HandymanIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>

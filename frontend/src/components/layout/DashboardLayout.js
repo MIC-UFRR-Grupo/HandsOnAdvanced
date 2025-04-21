@@ -1,9 +1,9 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Box, AppBar, Toolbar, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText } from '@mui/material';
-import { Dashboard, DirectionsCar, People, Assessment } from '@mui/icons-material';
+import { Dashboard, Commute, People, Assessment, Route } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-
+import imageLogo from 'frontend\\src\\assets\\maloca.png';
 const drawerWidth = 240;
 
 const DashboardLayout = () => {
@@ -11,20 +11,24 @@ const DashboardLayout = () => {
 
   const menuItems = [
     { text: 'Dashboard', icon: <Dashboard />, path: '/' },
-    { text: 'Veículos', icon: <DirectionsCar />, path: '/veiculos' },
+    { text: 'Veículos', icon: <Commute />, path: '/veiculos' },
     { text: 'Motoristas', icon: <People />, path: '/motoristas' },
+    { text: 'Viagens', icon: <Route />, path: '/viagens' },
     { text: 'Relatórios', icon: <Assessment />, path: '/relatorios' },
   ];
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
-        <Toolbar>
+      // quero texto a esquerda e logo a direita
+      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }} color="success">
+        <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="h6" noWrap component="div">
-            Sistema de Gestão de Transporte Hospitalar
+            Frota Leste - Sistema de Gestão de Transporte Hospitalar
           </Typography>
+          <img src={imageLogo} alt="Logo" style={{ width: '108px', height: '50px' }} />
         </Toolbar>
       </AppBar>
+
       <Drawer
         variant="permanent"
         sx={{

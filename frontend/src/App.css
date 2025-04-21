@@ -14,7 +14,7 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: #16A249;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -35,4 +35,16 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+:root {
+  --primary-color: #34C759; /* Cor verde */
+}
+
+.MuiAppBar-colorPrimary {
+  background-color: #34C759; /* Cor verde */
+}
+
+button {
+  background-color: #34C759; /* Cor verde */
 }
