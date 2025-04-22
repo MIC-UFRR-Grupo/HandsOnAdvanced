@@ -189,8 +189,8 @@ const Dashboard = () => {
       <Grid container spacing={3}>
         {/* Mapa */}
         <Grid item xs={12}>
-          <Paper elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden' }}>
-            <div ref={mapRef} style={{ height: '500px' }} />
+          <Paper elevation={3} sx={{ borderRadius: '12px', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}>
+            <div ref={mapRef} style={{ width: '1100px', height: '400px', maxWidth: '100%', margin: '0 auto' }} />
           </Paper>
         </Grid>
 
