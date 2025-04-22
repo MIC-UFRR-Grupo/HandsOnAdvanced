@@ -40,11 +40,11 @@ const Dashboard = () => {
   const [driverLocation, setDriverLocation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
-  const markerRef = useRef(null);
-  const lastLocationRef = useRef(null);
+  const markerRef = useRef([]); // Inicializa como array
+  const pollingInterval = useRef(null); // Para controlar o intervalo de polling
 
   // Adicionar estilo CSS ao documento
   useEffect(() => {
@@ -75,37 +75,38 @@ const Dashboard = () => {
     },
   ], [dashboardData]);
 
+  // Atualização em tempo real dos dados do dashboard (polling)
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       try {
-        setLoading(true);
         const dashData = await dashboardService.getDashboardData();
-        
-        // Atualizar dados do dashboard apenas se houver mudança
-        if (JSON.stringify(dashData) !== JSON.stringify(dashboardData)) {
-          setDashboardData(dashData);
-          if (dashData.veiculosAtivos.length > 0) {
-            setDriverLocation(dashData.veiculosAtivos[0].rfidData); // Usar primeiro veículo como exemplo
-          }
+        if (!isMounted) return;
+        setDashboardData(dashData);
+        if (dashData.veiculosAtivos.length > 0) {
+          setDriverLocation(dashData.veiculosAtivos[0].rfidData);
         }
+        setError(null);
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
+        if (!isMounted) return;
         setError('Erro ao carregar dados do dashboard');
       } finally {
+        if (!isMounted) return;
         setLoading(false);
       }
     };
-
     fetchData();
+    pollingInterval.current = setInterval(fetchData, 3000); // Atualiza a cada 3 segundos
+    return () => {
+      isMounted = false;
+      if (pollingInterval.current) clearInterval(pollingInterval.current);
+    };
+  }, []);
 
-    const interval = setInterval(fetchData, 10000);
-    return () => clearInterval(interval);
-  }, [dashboardData]);
-
+  // Atualiza marcadores do mapa sempre que dashboardData mudar
   useEffect(() => {
     if (!mapInstance.current && mapRef.current) {
       mapInstance.current = L.map(mapRef.current).setView([2.8256994, -60.6779949], 13);
-      
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         subdomains: ['a', 'b', 'c'],
@@ -114,20 +115,17 @@ const Dashboard = () => {
 
     if (mapInstance.current && dashboardData?.veiculosAtivos) {
       // Limpar marcadores existentes
-      if (markerRef.current) {
+      if (markerRef.current && markerRef.current.length > 0) {
         markerRef.current.forEach(marker => marker.remove());
+        markerRef.current = [];
       }
-      markerRef.current = [];
-
       // Adicionar marcadores para cada veículo
       dashboardData.veiculosAtivos.forEach(veiculo => {
         if (veiculo.rfidData && veiculo.rfidData.latitude && veiculo.rfidData.longitude) {
           const markerHtml = `
             <div class="driver-marker ${veiculo.rfidData.is_moving ? 'moving' : 'stopped'} driver-marker-pulse" 
-                 style="width: 20px; height: 20px;">
-            </div>
+                 style="width: 20px; height: 20px;"></div>
           `;
-
           const marker = L.marker([veiculo.rfidData.latitude, veiculo.rfidData.longitude], {
             icon: L.divIcon({
               className: 'custom-icon',
@@ -148,23 +146,20 @@ const Dashboard = () => {
               maxWidth: 300,
               className: 'custom-popup'
             });
-
           markerRef.current.push(marker);
         }
       });
-
       // Centralizar o mapa no primeiro veículo
       const primeiroVeiculo = dashboardData.veiculosAtivos.find(v => v.rfidData?.latitude && v.rfidData?.longitude);
       if (primeiroVeiculo) {
         mapInstance.current.setView([primeiroVeiculo.rfidData.latitude, primeiroVeiculo.rfidData.longitude], 13);
       }
     }
-
+    // Limpeza dos marcadores ao desmontar
     return () => {
-      if (mapInstance.current) {
-        mapInstance.current.remove();
-        mapInstance.current = null;
-        markerRef.current = null;
+      if (markerRef.current && markerRef.current.length > 0) {
+        markerRef.current.forEach(marker => marker.remove());
+        markerRef.current = [];
       }
     };
   }, [dashboardData]);
