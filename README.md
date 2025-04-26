@@ -2,11 +2,13 @@
 
 ## 📚 Sobre a Disciplina  
 **Disciplina**: MIC016 – Hands-On Advanced  
-**Atividade**: Maker Aula 06  
+**Atividade**: Maker Aula 08  
 **Assunto**: Avanço e melhorias no projeto do **DSEI LESTE**
 
-## 🚀 Projeto  
-Este repositório contém a implementação e evolução de um projeto de monitoramento de veículo de transporte hospitalar
+## 🚀 Projeto    
+
+Este repositório contém a implementação e evolução de um projeto de monitoramento de veículo de transporte hospitalar  
+Projeto implantado no vercel: [https://v0-frota-leste-3.vercel.app/](https://v0-frota-leste-3.vercel.app/)
 
 ---
 
@@ -30,8 +32,10 @@ Sistema embarcado utilizando o ESP32 para monitoramento de localização, movime
 ## 🔌 Esquema de Ligações
 
 ### 📷 Diagrama de Conexões
+![Esquema de Ligação](https://github.com/user-attachments/assets/4bea49aa-8719-442e-b50f-dede4c6f25fc)
 
-![Esquema de Ligação](https://github.com/user-attachments/assets/046cb2fd-b86e-4ad0-a333-c989ef3b4811)
+![image](https://github.com/user-attachments/assets/3ce2313a-f3f2-4f9e-9653-39bc10d670d7)
+
 
 ### 📍 Conexões por Componente
 
@@ -65,6 +69,20 @@ Sistema embarcado utilizando o ESP32 para monitoramento de localização, movime
 #### Buzzer
 - `Sinal` → GPIO 18
 - `GND` → GND (com resistor de 330Ω)
+
+#### LCD
+- `V0` → Potenciômetro (pino do meio)
+- `VSS` → GND
+- `VDD` → 3V3
+- `RS` → GPIO 12
+- `RW` → GND
+- `E` → GPIO 13
+- `D4` → GPIO 14
+- `D5` → GPIO 27
+- `D6` → GPIO 26
+- `D7` → GPIO 25
+- `A` → 3V3 (com resistor, geralmente 220Ω, se necessário para o seu LCD)
+- `K` → GND
 
 ---
 
